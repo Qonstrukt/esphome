@@ -225,6 +225,7 @@ uart:
     tx_pin: GPIO1
     rx_pin: GPIO3
     baud_rate: 115200
+    invert: true
   - id: uart2
     tx_pin: GPIO4
     rx_pin: GPIO5
