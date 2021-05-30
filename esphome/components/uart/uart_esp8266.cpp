@@ -51,15 +51,31 @@ void UARTComponent::setup() {
 
   if (this->tx_pin_.value_or(1) == 1 && this->rx_pin_.value_or(3) == 3) {
     this->hw_serial_ = &Serial;
-    this->hw_serial_->begin(this->baud_rate_, config, SERIAL_FULL, 1, this->invert_);
+    if (this->tx_invert_) {
+      config |= BIT(UCTXI);
+    }
+    if (this->rx_invert_) {
+      config |= BIT(UCRXI);
+    }
+    this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   } else if (this->tx_pin_.value_or(15) == 15 && this->rx_pin_.value_or(13) == 13) {
     this->hw_serial_ = &Serial;
-    this->hw_serial_->begin(this->baud_rate_, config, SERIAL_FULL, 1, this->invert_);
+    if (this->tx_invert_) {
+      config |= BIT(UCTXI);
+    }
+    if (this->rx_invert_) {
+      config |= BIT(UCRXI);
+    }
+    this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
     this->hw_serial_->swap();
-  } else if (this->tx_pin_.value_or(2) == 2 && this->rx_pin_.value_or(8) == 8 && !this->invert_) {
+  } else if (this->tx_pin_.value_or(2) == 2 && !this->rx_pin_.has_value()) {
     this->hw_serial_ = &Serial1;
+    //TODO: Test if inversion works on HW serial 1
+    if (this->tx_invert_) {
+      config |= BIT(UCTXI);
+    }
     this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   } else {
@@ -67,7 +83,7 @@ void UARTComponent::setup() {
     int8_t tx = this->tx_pin_.has_value() ? *this->tx_pin_ : -1;
     int8_t rx = this->rx_pin_.has_value() ? *this->rx_pin_ : -1;
     this->sw_serial_->setup(tx, rx, this->baud_rate_, this->stop_bits_, this->data_bits_, this->parity_,
-                            this->rx_buffer_size_, this->invert_);
+                            this->rx_buffer_size_, this->tx_invert_, this->rx_invert_);
   }
 }
 
@@ -75,10 +91,16 @@ void UARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UART Bus:");
   if (this->tx_pin_.has_value()) {
     ESP_LOGCONFIG(TAG, "  TX Pin: GPIO%d", *this->tx_pin_);
+    if (this->tx_invert_) {
+      ESP_LOGCONFIG(TAG, "  TX signal levels inverted");
+    }
   }
   if (this->rx_pin_.has_value()) {
     ESP_LOGCONFIG(TAG, "  RX Pin: GPIO%d", *this->rx_pin_);
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);  // NOLINT
+    if (this->rx_invert_) {
+      ESP_LOGCONFIG(TAG, "  RX signal levels inverted");
+    }
   }
   ESP_LOGCONFIG(TAG, "  Baud Rate: %u baud", this->baud_rate_);
   ESP_LOGCONFIG(TAG, "  Data Bits: %u", this->data_bits_);
@@ -88,9 +110,6 @@ void UARTComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Using hardware serial interface.");
   } else {
     ESP_LOGCONFIG(TAG, "  Using software serial");
-  }
-  if (this->invert_) {
-    ESP_LOGCONFIG(TAG, "  Signal levels inverted");
   }
   this->check_logger_conflict_();
 }
@@ -190,19 +209,21 @@ void UARTComponent::flush() {
   }
 }
 void ESP8266SoftwareSerial::setup(int8_t tx_pin, int8_t rx_pin, uint32_t baud_rate, uint8_t stop_bits,
-                                  uint32_t data_bits, UARTParityOptions parity, size_t rx_buffer_size, bool invert) {
+                                  uint32_t data_bits, UARTParityOptions parity, size_t rx_buffer_size, bool tx_invert,
+                                  bool rx_invert) {
   this->bit_time_ = F_CPU / baud_rate;
   this->rx_buffer_size_ = rx_buffer_size;
   this->stop_bits_ = stop_bits;
   this->data_bits_ = data_bits;
   this->parity_ = parity;
-  this->invert_ = invert;
+  this->tx_invert_ = tx_invert;
+  this->rx_invert_ = rx_invert;
   if (tx_pin != -1) {
     auto pin = GPIOPin(tx_pin, OUTPUT);
     this->gpio_tx_pin_ = &pin;
     pin.setup();
     this->tx_pin_ = pin.to_isr();
-    this->tx_pin_->digital_write(!this->invert_);
+    this->tx_pin_->digital_write(!this->tx_invert_);
   }
   if (rx_pin != -1) {
     auto pin = GPIOPin(rx_pin, INPUT);
@@ -210,7 +231,7 @@ void ESP8266SoftwareSerial::setup(int8_t tx_pin, int8_t rx_pin, uint32_t baud_ra
     this->gpio_rx_pin_ = &pin;
     this->rx_pin_ = pin.to_isr();
     this->rx_buffer_ = new uint8_t[this->rx_buffer_size_];
-    if (this->invert_) {
+    if (this->rx_invert_) {
       pin.attach_interrupt(ESP8266SoftwareSerial::gpio_intr, this, RISING);
     } else {
       pin.attach_interrupt(ESP8266SoftwareSerial::gpio_intr, this, FALLING);
@@ -283,10 +304,10 @@ void ICACHE_RAM_ATTR ESP8266SoftwareSerial::wait_(uint32_t *wait, const uint32_t
 }
 bool ICACHE_RAM_ATTR ESP8266SoftwareSerial::read_bit_(uint32_t *wait, const uint32_t &start) {
   this->wait_(wait, start);
-  return this->rx_pin_->digital_read() ^ this->invert_;
+  return this->rx_pin_->digital_read() ^ this->rx_invert_;
 }
 void ICACHE_RAM_ATTR ESP8266SoftwareSerial::write_bit_(bool bit, uint32_t *wait, const uint32_t &start) {
-  this->tx_pin_->digital_write(bit ^ this->invert_);
+  this->tx_pin_->digital_write(bit ^ this->tx_invert_);
   this->wait_(wait, start);
 }
 uint8_t ESP8266SoftwareSerial::read_byte() {

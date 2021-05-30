@@ -12,7 +12,9 @@ from esphome.const import (
     CONF_UART_ID,
     CONF_DATA,
     CONF_RX_BUFFER_SIZE,
-    CONF_INVERT,
+    CONF_NUMBER,
+    CONF_MODE,
+    CONF_INVERTED,
 )
 from esphome.core import CORE
 
@@ -37,10 +39,25 @@ def validate_raw_data(value):
 
 
 def validate_rx_pin(value):
-    value = pins.input_pin(value)
-    if CORE.is_esp8266 and value >= 16:
+    value = pins.gpio_input_pin_schema(value)
+    if CORE.is_esp8266 and value[CONF_NUMBER] >= 16:
         raise cv.Invalid("Pins GPIO16 and GPIO17 cannot be used as RX pins on ESP8266.")
+    if value[CONF_MODE] != "INPUT":
+        raise cv.Invalid("Pin modes are not (yet) supported on the RX pin.")
     return value
+
+
+def validate_tx_pin(value):
+    value = pins.gpio_output_pin_schema(value)
+    if value[CONF_MODE] != "OUTPUT":
+        raise cv.Invalid("Pin modes are not (yet) supported on the TX pin.")
+    return value
+
+
+def validate_invert_esp32(config):
+    if CORE.is_esp32 and CONF_TX_PIN in config and CONF_RX_PIN in config and config[CONF_TX_PIN] != config[CONF_RX_PIN]:
+        raise cv.Invalid("Different invert values for TX and RX pin are not (yet) supported for ESP32.")
+    return config
 
 
 UARTParityOptions = uart_ns.enum("UARTParityOptions")
@@ -59,10 +76,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(UARTComponent),
             cv.Required(CONF_BAUD_RATE): cv.int_range(min=1),
-            cv.Optional(CONF_TX_PIN): pins.output_pin,
+            cv.Optional(CONF_TX_PIN): validate_tx_pin,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
-            cv.Optional(CONF_INVERT, default=False): cv.boolean,
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
@@ -71,6 +87,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN),
+    validate_invert_esp32,
 )
 
 
@@ -82,12 +99,14 @@ async def to_code(config):
     cg.add(var.set_baud_rate(config[CONF_BAUD_RATE]))
 
     if CONF_TX_PIN in config:
-        cg.add(var.set_tx_pin(config[CONF_TX_PIN]))
+        number = config[CONF_TX_PIN][CONF_NUMBER]
+        inverted = config[CONF_TX_PIN][CONF_INVERTED]
+        cg.add(var.set_tx_pin(number, inverted))
     if CONF_RX_PIN in config:
-        cg.add(var.set_rx_pin(config[CONF_RX_PIN]))
+        number = config[CONF_RX_PIN][CONF_NUMBER]
+        inverted = config[CONF_RX_PIN][CONF_INVERTED]
+        cg.add(var.set_rx_pin(number, inverted))
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
-    if CONF_INVERT in config:
-        cg.add(var.set_invert(config[CONF_INVERT]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))

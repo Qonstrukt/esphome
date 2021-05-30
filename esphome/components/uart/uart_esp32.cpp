@@ -80,7 +80,13 @@ void UARTComponent::setup() {
   }
   int8_t tx = this->tx_pin_.has_value() ? *this->tx_pin_ : -1;
   int8_t rx = this->rx_pin_.has_value() ? *this->rx_pin_ : -1;
-  this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, this->invert_);
+  // Future work: split RX and TX inverting of the serial bus.
+  //  for now, tx_invert and rx_invert need to be equal.
+  bool invert = this->tx_pin_.has_value() ? this->tx_invert_ : this->rx_invert_;
+  if (this->rx_pin.has_value()) {
+    assert(invert == this->rx_invert_);
+  }
+  this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
 }
 
@@ -88,18 +94,21 @@ void UARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UART Bus:");
   if (this->tx_pin_.has_value()) {
     ESP_LOGCONFIG(TAG, "  TX Pin: GPIO%d", *this->tx_pin_);
+    if (this->tx_invert_) {
+      ESP_LOGCONFIG(TAG, "  TX signal levels inverted");
+    }
   }
   if (this->rx_pin_.has_value()) {
     ESP_LOGCONFIG(TAG, "  RX Pin: GPIO%d", *this->rx_pin_);
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
+    if (this->rx_invert_) {
+      ESP_LOGCONFIG(TAG, "  RX signal levels inverted");
+    }
   }
   ESP_LOGCONFIG(TAG, "  Baud Rate: %u baud", this->baud_rate_);
   ESP_LOGCONFIG(TAG, "  Data Bits: %u", this->data_bits_);
   ESP_LOGCONFIG(TAG, "  Parity: %s", parity_to_str(this->parity_));
   ESP_LOGCONFIG(TAG, "  Stop bits: %u", this->stop_bits_);
-  if (this->invert_) {
-    ESP_LOGCONFIG(TAG, "  Signal levels inverted");
-  }
   this->check_logger_conflict_();
 }
 
