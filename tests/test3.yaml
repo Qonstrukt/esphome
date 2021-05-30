@@ -221,11 +221,11 @@ spi:
   miso_pin: GPIO14
 
 uart:
-  - id: uart1
-    tx_pin: GPIO1
+  - tx_pin:
+      number: GPIO1
+      inverted: yes
     rx_pin: GPIO3
     baud_rate: 115200
-    invert: true
   - id: uart2
     tx_pin: GPIO4
     rx_pin: GPIO5
