@@ -39,6 +39,13 @@ uint32_t UARTComponent::get_config() {
   else
     config |= UART_NB_STOP_BIT_2;
 
+  if (this->tx_invert_) {
+    config |= BIT(UCTXI);
+  }
+  if (this->rx_invert_) {
+    config |= BIT(UCRXI);
+  }
+  
   return config;
 }
 
@@ -51,31 +58,16 @@ void UARTComponent::setup() {
 
   if (this->tx_pin_.value_or(1) == 1 && this->rx_pin_.value_or(3) == 3) {
     this->hw_serial_ = &Serial;
-    if (this->tx_invert_) {
-      config |= BIT(UCTXI);
-    }
-    if (this->rx_invert_) {
-      config |= BIT(UCRXI);
-    }
     this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   } else if (this->tx_pin_.value_or(15) == 15 && this->rx_pin_.value_or(13) == 13) {
     this->hw_serial_ = &Serial;
-    if (this->tx_invert_) {
-      config |= BIT(UCTXI);
-    }
-    if (this->rx_invert_) {
-      config |= BIT(UCRXI);
-    }
     this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
     this->hw_serial_->swap();
   } else if (this->tx_pin_.value_or(2) == 2 && !this->rx_pin_.has_value()) {
     this->hw_serial_ = &Serial1;
     //TODO: Test if inversion works on HW serial 1
-    if (this->tx_invert_) {
-      config |= BIT(UCTXI);
-    }
     this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   } else {
