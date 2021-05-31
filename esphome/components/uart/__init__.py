@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_NUMBER,
     CONF_MODE,
     CONF_INVERTED,
+    CONF_INVERT,
 )
 from esphome.core import CORE
 
@@ -57,6 +58,9 @@ def validate_tx_pin(value):
 def validate_invert_esp32(config):
     if CORE.is_esp32 and CONF_TX_PIN in config and CONF_RX_PIN in config and config[CONF_TX_PIN][CONF_INVERTED] != config[CONF_RX_PIN][CONF_INVERTED]:
         raise cv.Invalid("Different invert values for TX and RX pin are not (yet) supported for ESP32.")
+    # Don't allow old style invert and new style invert simultaneously.
+    if CONF_INVERT in config and ((CONF_TX_PIN in config and config[CONF_TX_PIN][CONF_INVERTED]) or (CONF_RX_PIN in config and config[CONF_RX_PIN][CONF_INVERTED])):
+        raise cv.Invalid("Please only use the inverted option on the pins together with the deprecated invert option.")
     return config
 
 
@@ -79,6 +83,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TX_PIN): validate_tx_pin,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
+            cv.Optional(CONF_INVERT): cv.All(
+                cv.only_on_esp32, cv.boolean
+            ),
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
@@ -107,6 +114,8 @@ async def to_code(config):
         inverted = config[CONF_RX_PIN][CONF_INVERTED]
         cg.add(var.set_rx_pin(number, inverted))
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
+    if CONF_INVERT in config:
+        cg.add(var.set_invert(config[CONF_INVERT]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))
