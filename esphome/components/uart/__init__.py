@@ -55,8 +55,15 @@ def validate_tx_pin(value):
 
 
 def validate_invert_esp32(config):
-    if CORE.is_esp32 and CONF_TX_PIN in config and CONF_RX_PIN in config and config[CONF_TX_PIN][CONF_INVERTED] != config[CONF_RX_PIN][CONF_INVERTED]:
-        raise cv.Invalid("Different invert values for TX and RX pin are not (yet) supported for ESP32.")
+    if (
+        CORE.is_esp32
+        and CONF_TX_PIN in config
+        and CONF_RX_PIN in config
+        and config[CONF_TX_PIN][CONF_INVERTED] != config[CONF_RX_PIN][CONF_INVERTED]
+    ):
+        raise cv.Invalid(
+            "Different invert values for TX and RX pin are not (yet) supported for ESP32."
+        )
     return config
 
 
