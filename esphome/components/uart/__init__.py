@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_NUMBER,
     CONF_MODE,
     CONF_INVERTED,
+    CONF_INVERT,
 )
 from esphome.core import CORE
 
@@ -86,6 +87,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TX_PIN): validate_tx_pin,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
+            cv.Optional(CONF_INVERT): cv.invalid(
+                "The 'invert' option has been removed. Please use the the 'inverted' properties on the 'tx_pin' and 'rx_pin' options instead."
+            ),
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
