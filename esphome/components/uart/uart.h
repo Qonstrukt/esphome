@@ -92,10 +92,6 @@ class UARTComponent : public Component, public Stream {
   void set_tx_pin(uint8_t tx_pin, bool tx_invert) { this->tx_pin_ = tx_pin; this->tx_invert_ = tx_invert; }
   void set_rx_pin(uint8_t rx_pin, bool rx_invert) { this->rx_pin_ = rx_pin; this->rx_invert_ = rx_invert; }
   void set_rx_buffer_size(size_t rx_buffer_size) { this->rx_buffer_size_ = rx_buffer_size; }
-#ifdef ARDUINO_ARCH_ESP32
-  ESPDEPRECATED("set_invert is deprecated, use set_tx_pin and set_rx_pin instead.")
-  void set_invert(bool invert) { this->tx_invert_ = invert; this->rx_invert_ = invert; }
-#endif
   void set_stop_bits(uint8_t stop_bits) { this->stop_bits_ = stop_bits; }
   void set_data_bits(uint8_t data_bits) { this->data_bits_ = data_bits; }
   void set_parity(UARTParityOptions parity) { this->parity_ = parity; }
