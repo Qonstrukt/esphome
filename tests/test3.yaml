@@ -221,7 +221,8 @@ spi:
   miso_pin: GPIO14
 
 uart:
-  - tx_pin:
+  - id: uart1
+    tx_pin:
       number: GPIO1
       inverted: yes
     rx_pin: GPIO3

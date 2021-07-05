@@ -89,8 +89,14 @@ class UARTComponent : public Component, public Stream {
   int read() override;
   int peek() override;
 
-  void set_tx_pin(uint8_t tx_pin, bool tx_invert) { this->tx_pin_ = tx_pin; this->tx_invert_ = tx_invert; }
-  void set_rx_pin(uint8_t rx_pin, bool rx_invert) { this->rx_pin_ = rx_pin; this->rx_invert_ = rx_invert; }
+  void set_tx_pin(uint8_t tx_pin, bool tx_invert) {
+    this->tx_pin_ = tx_pin;
+    this->tx_invert_ = tx_invert;
+  }
+  void set_rx_pin(uint8_t rx_pin, bool rx_invert) {
+    this->rx_pin_ = rx_pin;
+    this->rx_invert_ = rx_invert;
+  }
   void set_rx_buffer_size(size_t rx_buffer_size) { this->rx_buffer_size_ = rx_buffer_size; }
   void set_stop_bits(uint8_t stop_bits) { this->stop_bits_ = stop_bits; }
   void set_data_bits(uint8_t data_bits) { this->data_bits_ = data_bits; }

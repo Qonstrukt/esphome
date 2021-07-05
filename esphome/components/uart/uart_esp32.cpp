@@ -83,7 +83,7 @@ void UARTComponent::setup() {
   // Future work: split RX and TX inverting of the serial bus.
   //  for now, tx_invert and rx_invert need to be equal.
   bool invert = this->tx_pin_.has_value() ? this->tx_invert_ : this->rx_invert_;
-  if (this->rx_pin.has_value()) {
+  if (this->rx_pin_.has_value()) {
     assert(invert == this->rx_invert_);
   }
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);

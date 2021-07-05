@@ -45,7 +45,7 @@ uint32_t UARTComponent::get_config() {
   if (this->rx_invert_) {
     config |= BIT(UCRXI);
   }
-  
+
   return config;
 }
 
@@ -67,7 +67,7 @@ void UARTComponent::setup() {
     this->hw_serial_->swap();
   } else if (this->tx_pin_.value_or(2) == 2 && !this->rx_pin_.has_value()) {
     this->hw_serial_ = &Serial1;
-    //TODO: Test if inversion works on HW serial 1
+    // TODO: Test if inversion works on HW serial 1
     this->hw_serial_->begin(this->baud_rate_, config);
     this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   } else {
