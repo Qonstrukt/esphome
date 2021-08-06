@@ -218,7 +218,7 @@ void ESP8266SoftwareSerial::setup(int8_t tx_pin, int8_t rx_pin, uint32_t baud_ra
     this->tx_pin_->digital_write(!this->tx_invert_);
   }
   if (rx_pin != -1) {
-    auto pin = GPIOPin(rx_pin, INPUT);
+    auto pin = GPIOPin(rx_pin, INPUT_PULLUP);
     pin.setup();
     this->gpio_rx_pin_ = &pin;
     this->rx_pin_ = pin.to_isr();
